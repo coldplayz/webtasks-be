@@ -66,7 +66,7 @@ export async function getUserById(
 }
 
 export async function createUser(
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) {

@@ -18,6 +18,8 @@ authRouter.post('/signin', loginValidator, loginUser);
 authRouter.post(
   '/signout',
   verifyJWT,
+  // no authz currently; can only log out self
+  // TODO: add feature for admin to logout any user
   (req: Request, res: Response, next: NextFunction) => {
     logoutUser(req as AuthenticatedRequest, res, next);
   }

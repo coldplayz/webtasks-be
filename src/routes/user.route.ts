@@ -13,6 +13,7 @@ import {
   signupValidator,
 } from "@/src/middlewares/validation-middleware";
 import { AuthenticatedRequest } from "@/types";
+import { Routes, routeAuthzMap } from "@/lib/config";
 
 const userRouter = Router();
 
@@ -21,6 +22,7 @@ const userRouter = Router();
 userRouter.get(
   '/',
   verifyJWT,
+  routeAuthzMap.get(Routes.user.getUsers),
   (req: Request, res: Response, next: NextFunction) => {
     getUsers(req as AuthenticatedRequest, res, next);
   }
@@ -30,6 +32,8 @@ userRouter.get(
 // userRouter.get('/:id', (req, res) => res.json({ route: 'GET /users/:id' }));
 userRouter.get(
   '/:id',
+  verifyJWT,
+  routeAuthzMap.get(Routes.user.getUserById),
   (req: Request, res: Response, next: NextFunction) => {
     getUserById(req as AuthenticatedRequest, res, next);
   }
@@ -40,8 +44,9 @@ userRouter.get(
 userRouter.post(
   '/',
   signupValidator,
+  routeAuthzMap.get(Routes.user.createUser), // redundant
   (req: Request, res: Response, next: NextFunction) => {
-    createUser(req as AuthenticatedRequest, res, next);
+    createUser(req, res, next);
   }
 );
 
@@ -49,6 +54,8 @@ userRouter.post(
 // userRouter.put('/:id', (req, res) => res.json({ route: 'PUT /users/:id' }));
 userRouter.put(
   '/:id',
+  verifyJWT,
+  routeAuthzMap.get(Routes.user.editUserById),
   (req: Request, res: Response, next: NextFunction) => {
     editUserById(req as AuthenticatedRequest, res, next);
   }
@@ -58,6 +65,8 @@ userRouter.put(
 // userRouter.delete('/:id', (req, res) => res.json({ route: 'DELETE /users/:id' }));
 userRouter.delete(
   '/:id',
+  verifyJWT,
+  routeAuthzMap.get(Routes.user.deleteUserById),
   (req: Request, res: Response, next: NextFunction) => {
     deleteUserById(req as AuthenticatedRequest, res, next);
   }

@@ -10,6 +10,7 @@ import {
 import { verifyJWT } from "@/src/middlewares/authn-middleware";
 import { loginValidator } from "@/src/middlewares/validation-middleware";
 import { AuthenticatedRequest } from "@/types";
+import { Routes, routeAuthzMap } from "@/lib/config";
 
 const taskRouter = Router();
 
@@ -17,6 +18,7 @@ const taskRouter = Router();
 taskRouter.get(
   '/',
   verifyJWT,
+  routeAuthzMap.get(Routes.task.getTasks),
   (req: Request, res: Response, next: NextFunction) => {
     getTasks(req as AuthenticatedRequest, res, next);
   }
@@ -26,6 +28,7 @@ taskRouter.get(
 taskRouter.get(
   '/:id',
   verifyJWT,
+  routeAuthzMap.get(Routes.task.getTaskById),
   (req: Request, res: Response, next: NextFunction) => {
     getTaskById(req as AuthenticatedRequest, res, next);
   }
@@ -35,6 +38,7 @@ taskRouter.get(
 taskRouter.post(
   '/',
   verifyJWT,
+  routeAuthzMap.get(Routes.task.createTask),
   (req: Request, res: Response, next: NextFunction) => {
     createTask(req as AuthenticatedRequest, res, next);
   }
@@ -44,6 +48,7 @@ taskRouter.post(
 taskRouter.put(
   '/:id',
   verifyJWT,
+  routeAuthzMap.get(Routes.task.editTaskById),
   (req: Request, res: Response, next: NextFunction) => {
     editTaskById(req as AuthenticatedRequest, res, next);
   }
@@ -53,6 +58,7 @@ taskRouter.put(
 taskRouter.delete(
   '/:id',
   verifyJWT,
+  routeAuthzMap.get(Routes.task.deleteTaskById),
   (req: Request, res: Response, next: NextFunction) => {
     deleteTaskById(req as AuthenticatedRequest, res, next);
   }
