@@ -12,10 +12,11 @@ import logger from "morgan";
 
 import { server, app } from "../src/app-server";
 import eventEmitter from "../src/events/api-events";
-import connectDB from "./data-access/connection";
+import connectDB from "@/src/connection";
 import userRouter from "./routes/user.route";
 import authRouter from "./routes/auth.route";
 import taskRouter from "./routes/task.route";
+import { DATABASE_NAME } from "@/lib/config";
 
 dotenv.config();
 
@@ -62,7 +63,7 @@ app.get("/", (_, res) => {
 /**
  * Server and socket startup
  */
-connectDB('webtasks')
+connectDB(DATABASE_NAME)
   .then(() => {
     server.listen(PORT, () => {
       eventEmitter.on('apiEvent', (msg) => {

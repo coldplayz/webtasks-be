@@ -16,7 +16,7 @@ const TaskSchema = new Schema({
     default: false,
   },
   userId: {
-    type: String,
+    type: 'ObjectId',
     required: true,
   },
 }, {

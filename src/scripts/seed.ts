@@ -1,23 +1,22 @@
 import { Types, Model, Document } from "mongoose";
 
-import UserModel from "../data-access/models/user.model";
-import TaskModel from "../data-access/models/task.model";
-import connectDB from "../data-access/connection";
+import UserModel from "@/src/models/user.model";
+import TaskModel from "@/src/models/task.model";
+import connectDB from "@/src/connection";
 import {
-  ITaskCreateDTO,
-  ITaskDoc,
-  IUserCreateDTO,
-  IUserDoc,
+  TaskCreateDTO,
   TaskDoc,
+  UserCreateDTO,
   UserDoc,
-} from "../entities/interfaces";
+} from "@/types";
+import { DATABASE_NAME as db } from "@/lib/config";
 // import bc from "bcryptjs";
 
 // arrays for collecting seeded documents
 const seededTasks: Types.ObjectId[] = [];
 const seededUsers: Types.ObjectId[] = [];
 
-const userData: IUserCreateDTO[] = [
+const userData: UserCreateDTO[] = [
   {
     firstName: 'Greenbel',
     lastName: 'Eleghasim',
@@ -32,22 +31,21 @@ const userData: IUserCreateDTO[] = [
   },
 ];
 
-const taskDataNoOwner: ITaskCreateDTO[] = [
+const dummyObjectId = new Types.ObjectId();
+const taskDataNoOwner: TaskCreateDTO[] = [
   {
     description: 'Check emails',
-    userId: '', // ! add userId prop before saving
+    userId: dummyObjectId, // ! add userId prop before saving
   },
   {
     description: 'Do laundry',
-    userId: '', // ! add userId prop before saving
+    userId: dummyObjectId, // ! add userId prop before saving
   },
   {
     description: 'Cook beans',
-    userId: '', // ! add userId prop before saving
+    userId: dummyObjectId, // ! add userId prop before saving
   },
 ];
-
-const db = 'webtasks';
 
 /**
  * Handles the logic for seeding a couple of related collections.
@@ -69,11 +67,11 @@ async function seeder() {
   // seed users
   await seed(UserModel, { docs: userData, isModelled: false }, seededUsers);
 
-  const taskData: ITaskCreateDTO[] = taskDataNoOwner.map((taskObj) => {
+  const taskData: TaskCreateDTO[] = taskDataNoOwner.map((taskObj) => {
     // return tasks with [gb] user id attached, before saving
     return {
       ...taskObj,
-      userId: seededUsers[0].toString(),
+      userId: seededUsers[0],
     };
   });
 
@@ -81,7 +79,7 @@ async function seeder() {
 }
 
 type SeedDoc = {
-  docs: ITaskCreateDTO[] | IUserCreateDTO[] | Document[];
+  docs: TaskCreateDTO[] | UserCreateDTO[] | Document[];
   isModelled: boolean;
 };
 

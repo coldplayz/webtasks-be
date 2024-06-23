@@ -9,14 +9,17 @@
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 
-import * as userService from "../data-access/services/user.service";
-import userUC from "../use-cases/user";
-import eventEmitter from "../events/api-events";
+import * as userServices from "@/src/services/user.service";
 import {
-  IUserCreateDTO,
-  IUserQueryDTO,
-  IUserUpdateDTO,
-} from "../entities/interfaces";
+  AuthenticatedRequest,
+  RawUserQueryDTO,
+  UserCreateDTO,
+  UserQueryDTO,
+  UserUpdateDTO,
+} from "@/types";
+import { getUserDataFrom, getUserQueryFrom, getUserUpdateFrom } from "@/lib/utils";
+import eventEmitter from "@/src/events/api-events";
+import { Types } from "mongoose";
 
 // TODO:
 // - see about decoupling controller from data service; perhaps
@@ -24,36 +27,49 @@ import {
 // - data validation
 // - data formatting
 
-export async function getUsers(req: Request, res: Response, next: NextFunction) {
-  const queryProps = ['id', 'firstName', 'lastName', 'email'];
-  const queryObj: IUserQueryDTO = {};
-
-  queryProps.forEach((prop) => {
-    if (req.query[prop]) queryObj[prop] = req.query[prop];
-  });
+export async function getUsers(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  const queryObj: UserQueryDTO = getUserQueryFrom(req.query);
 
   try {
-    const users = await userUC.getUsers(userService, queryObj);
-    res.json({users});
+    const users = await userServices.getUsers(queryObj);
+    res.json({
+      success: true,
+      data: users,
+    });
     eventEmitter.emit('getUsers', { getUsers: true, users });
   } catch (err: any) {
-    res.status(err.statusCode || 500).json({ success: false, error: err });
+    next(err);
   }
 }
 
-export async function getUserById(req: Request, res: Response, next: NextFunction) {
+export async function getUserById(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+) {
   const { id } = req.params;
 
   try {
-    const user = await userUC.getUserById(userService, id);
-    res.json({user});
+    const user = await userServices.getUserById(new Types.ObjectId(id));
+    res.json({
+      success: true,
+      data: user,
+    });
     eventEmitter.emit('getUserById', { getUserById: true, user });
   } catch (err: any) {
-    res.status(err.statusCode || 500).json({ success: false, error: err });
+    next(err);
   }
 }
 
-export async function createUser(req: Request, res: Response, next: NextFunction) {
+export async function createUser(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
   const errors = validationResult(req);
   // console.log(errors);
 
@@ -64,38 +80,40 @@ export async function createUser(req: Request, res: Response, next: NextFunction
     });
   }
 
-  const { firstName, lastName, email, password } = req.body;
-  const userData: IUserCreateDTO = {
-    firstName,
-    lastName,
-    email,
-    password,
-  };
+  const userData: UserCreateDTO = getUserDataFrom(req.body);
 
   try {
-    const newUser = await userUC.createUser(userService, userData);
-    res.status(201).json({ newUser });
+    const newUser = await userServices.createUser(userData);
+    res.status(201).json({
+      success: true,
+      data: newUser,
+    });
     eventEmitter.emit('createUser', { createUser: true, newUser });
   } catch (err: any) {
-    res.status(err.statusCode || 500).json({ success: false, error: err });
+    next(err);
   }
 }
 
-export async function editUserById(req: Request, res: Response, next: NextFunction) {
+export async function editUserById(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
   const { id } = req.params;
-  const updateData: IUserUpdateDTO = {};
-
-  const bodyProps = ['password', 'firstName', 'lastName', 'email'];
-  bodyProps.forEach((prop) => {
-    if (req.body[prop]) updateData[prop] = req.body[prop];
-  });
+  const updateData: UserUpdateDTO = getUserUpdateFrom(req.body);
 
   try {
-    const editedUser = await userUC.editUserById(userService, id, updateData);
-    res.json({ editedUser });
+    const editedUser = await userServices.editUserById(
+      new Types.ObjectId(id),
+      updateData,
+    );
+    res.json({
+      success: true,
+      data: editedUser,
+    });
     eventEmitter.emit('editUserById', { editUserById: true, editedUser });
   } catch (err: any) {
-    res.status(err.statusCode || 500).json({ success: false, error: err });
+    next(err);
   }
 }
 
@@ -103,10 +121,10 @@ export async function deleteUserById(req: Request, res: Response, next: NextFunc
   const { id } = req.params;
 
   try {
-    const result = await userUC.deleteUserById(userService, id);
-    res.status(204).json({ success: true, result });
+    const result = await userServices.deleteUserById(new Types.ObjectId(id));
+    res.status(204).json({ success: true, data: result });
     eventEmitter.emit('deleteUserById', { data: {} });
   } catch (err: any) {
-    res.status(err.statusCode || 500).json({ success: false, error: err });
+    next(err);
   }
 }

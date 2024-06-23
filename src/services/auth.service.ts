@@ -2,28 +2,26 @@
 * Authentication services
 */
 
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 
 import User from "../models/user.model";
+import { TEST_SECRET } from "@/lib/config";
+import { ApiError } from "@/lib/error-handling";
+import { UserObj } from "@/types";
+import { Types } from "mongoose";
 
-const testSecret = 'test+secret';
-
-export const loginUser = async (email, password) => {
+export const loginUser = async (email: string, password: string) => {
   // Validate email and password presence
   if (!email || !password) {
-    const error = new Error('Email and password are required');
-    error.statusCode = 400;
-    throw error;
+    throw new ApiError('Email and password are required', 400);
   }
 
   // Find the user by email in the database
-  const user = await User.findOne({ email });
+  const user: UserObj = await User.findOne({ email });
 
   // Check if the user exists
   if (!user) {
-    const error = new Error('Invalid email');
-    error.statusCode = 401;
-    throw error;
+    throw new ApiError('Invalid email', 401);
   }
 
   // Verify the correctness of the provided password
@@ -31,9 +29,7 @@ export const loginUser = async (email, password) => {
 
   // Handle incorrect password
   if (!isPasswordValid) {
-    const error = new Error('Incorrect password');
-    error.statusCode = 401;
-    throw error;
+    throw new ApiError('Invalid email', 401);
   }
 
   // Generate access and refresh tokens
@@ -44,18 +40,22 @@ export const loginUser = async (email, password) => {
   user.refreshToken = refreshToken;
   await user.save();
 
-  return { accessToken, refreshToken };
+  return {
+    accessToken,
+    refreshToken,
+    email: user.email,
+    role: user.role,
+    id: user._id || user.id,
+  };
 };
 
-export const logoutUser = async (userId) => {
+export const logoutUser = async (userId: Types.ObjectId) => {
   // Remove the refresh token from the user's information
   // console.log(userId); // SCAFF
   const user = await User.findById(userId);
 
   if (!user) {
-    const error = new Error('User not found');
-    error.statusCode = 404;
-    throw error;
+    throw new ApiError('User not found', 404);
   }
 
   user.refreshToken = '';
@@ -75,29 +75,25 @@ export const logoutUser = async (userId) => {
  */
 };
 
-export const refreshAccessToken = async (incomingRefreshToken) => {
+export const refreshAccessToken = async (incomingRefreshToken: string) => {
   // Verify the incoming refresh token using the secret key
-  const decodedToken = jwt.verify(
+  const decodedToken: (JwtPayload | string) & { id?: string } = jwt.verify(
     incomingRefreshToken,
-    process.env.REFRESH_TOKEN_SECRET || testSecret
+    process.env.REFRESH_TOKEN_SECRET || TEST_SECRET
   );
 
   // Find the user associated with the refresh token
-  const user = await User.findById(decodedToken?.id);
+  const user: UserObj = await User.findById(decodedToken?.id);
 
   // If the user isn't found, deny access with a 404 Not Found status
   if (!user) {
-    const error = new Error('User not found');
-    error.statusCode = 404;
-    throw error;
+    throw new ApiError('User not found', 404);
   }
 
   // If the stored refresh token doesn't match the
   // incoming one, deny access with a 401 Unauthorized status
   if (user?.refreshToken !== incomingRefreshToken) {
-    const error = new Error('Invalid refresh token');
-    error.statusCode = 401;
-    throw error;
+    throw new ApiError('Invalid refresh token', 401);
   }
 
   // Generate access and refresh tokens
@@ -111,5 +107,11 @@ export const refreshAccessToken = async (incomingRefreshToken) => {
   // console.log('AR_TOKEN', accessToken, refreshToken); // SCAFF
 
   // return new access and refresh tokens
-  return { accessToken, refreshToken };
+  return {
+    accessToken,
+    refreshToken,
+    email: user.email,
+    role: user.role,
+    id: user._id || user.id,
+  };
 };

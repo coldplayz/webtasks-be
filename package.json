@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "ts-node-dev --respawn --pretty --transpile-only src/index.ts"
+    "dev": "ts-node-dev -r tsconfig-paths/register --respawn --pretty --transpile-only src/index.ts",
+    "start": "ts-node -r tsconfig-paths/register src/index.ts",
+    "seed": "npx ts-node --project ./tsconfig.json -r tsconfig-paths/register src/scripts/seed.ts"
   },
   "keywords": [],
   "author": "",
@@ -23,7 +25,8 @@
     "mongoose": "^8.3.5",
     "morgan": "^1.10.0",
     "prisma": "^5.15.0",
-    "socket.io": "^4.7.5"
+    "socket.io": "^4.7.5",
+    "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

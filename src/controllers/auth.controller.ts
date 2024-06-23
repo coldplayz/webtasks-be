@@ -9,9 +9,10 @@ import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { validationResult } from "express-validator";
 
-import * as authService from "../data-access/services/auth.service";
-import userUC from "../use-cases/user";
+import * as authServices from "@/src/services/auth.service";
 import eventEmitter from "../events/api-events";
+import { AuthenticatedRequest } from "@/types";
+import { Types } from "mongoose";
 
 // TODO:
 // - see about decoupling controller from data service; perhaps
@@ -37,7 +38,7 @@ export async function loginUser(req: Request, res: Response, next: NextFunction)
   // log(req.body); // SCAFF
 
   try {
-    const { accessToken, refreshToken } = await authService.loginUser(email, password);
+    const user = await authServices.loginUser(email, password);
     // console.log('DECODED_TOKEN', accessToken, jwt.verify(accessToken, 'test+secret'));
 
     // Set options for cookies
@@ -49,12 +50,14 @@ export async function loginUser(req: Request, res: Response, next: NextFunction)
     // Set cookies with the generated tokens
     return res
       .status(200)
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", refreshToken, options)
+      .cookie("accessToken", user.accessToken, options)
+      .cookie("refreshToken", user.refreshToken, options)
       .json({
-        accessToken,
-        refreshToken,
-        message: "Logged in successfully",
+        success: true,
+        data: {
+          user,
+          message: "Logged in successfully",
+        },
       });
     eventEmitter.emit('loginUser', { login: true, user: email });
   } catch (err: any) {
@@ -62,12 +65,16 @@ export async function loginUser(req: Request, res: Response, next: NextFunction)
   }
 }
 
-export async function logoutUser(req: Request, res: Response, next: NextFunction) {
+export async function logoutUser(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
   try {
     // Remove the refresh token from the user's information
     // console.log(req.user); // SCAFF
     const id: string = req.user.id;
-    const result = await authService.logoutUser(id);
+    const result = await authServices.logoutUser(new Types.ObjectId(id));
     // console.log('result###->', result); // SCAFF
 
     // Set options for cookies
@@ -81,7 +88,10 @@ export async function logoutUser(req: Request, res: Response, next: NextFunction
       .status(200)
       .clearCookie("accessToken", options)
       .clearCookie("refreshToken", options)
-      .json({ user: {}, message: "Logged out successfully" });
+      .json({
+        success: true,
+        data: { message: "Logged out successfully" },
+      });
     eventEmitter.emit('logoutUser', { data: 'Logout successfull!' });
   } catch (err: any) {
     if (err.name === 'JsonWebTokenError') {
@@ -89,7 +99,7 @@ export async function logoutUser(req: Request, res: Response, next: NextFunction
         { success: false, error: 'User not logged in' }
       );
     }
-    res.status(err.statusCode || 500).json({ success: false, error: err });
+    next(err);
   }
 };
 
@@ -113,10 +123,7 @@ export async function refreshAccessToken(
   }
 
   try {
-    const {
-      accessToken,
-      refreshToken
-    } = await authService.refreshAccessToken(incomingRefreshToken);
+    const user = await authServices.refreshAccessToken(incomingRefreshToken);
 
     // Set options for cookies
     const options = {
@@ -127,13 +134,19 @@ export async function refreshAccessToken(
     // Set the new tokens in cookies
     return res
       .status(200)
-      .cookie("accessToken", accessToken, options)
-      .cookie("refreshToken", refreshToken, options)
-      .json({ accessToken, refreshToken, message: "Access token refreshed" });
+      .cookie("accessToken", user.accessToken, options)
+      .cookie("refreshToken", user.refreshToken, options)
+      .json({
+        success: true,
+        data: {
+          user,
+          message: "Access token refreshed",
+        }
+      });
     eventEmitter.emit('refreshToken', {
       tokens: {
-        accessToken,
-        refreshToken,
+        accessToken: user.accessToken,
+        refreshToken: user.refreshToken,
       },
     });
   } catch (err: any) {
