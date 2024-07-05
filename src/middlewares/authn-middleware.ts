@@ -28,6 +28,8 @@ export const verifyJWT = async (
       return res.status(401).json({ message: "Token not found" });
     }
 
+    // log('#####', token); // SCAFF
+
     // Check if the token is valid using a secret key
     const decodedToken = jwt.verify(
       token,

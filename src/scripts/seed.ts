@@ -1,5 +1,11 @@
 import { Types, Model, Document } from "mongoose";
 
+import * as dotenv from "dotenv";
+const result = dotenv.config({ path: ['./.env', './.env.local'] });
+if (result.error) {
+  throw result.error
+}
+
 import UserModel from "@/src/models/user.model";
 import TaskModel from "@/src/models/task.model";
 import connectDB from "@/src/connection";
@@ -9,7 +15,7 @@ import {
   UserCreateDTO,
   UserDoc,
 } from "@/types";
-import { DATABASE_NAME as db } from "@/lib/config";
+import { UserRoles, DATABASE_NAME as db } from "@/lib/config";
 // import bc from "bcryptjs";
 
 // arrays for collecting seeded documents
@@ -28,6 +34,13 @@ const userData: UserCreateDTO[] = [
     lastName: 'Eleghasim',
     email: 'david@gmail.com',
     password: 'davidpwd',
+  },
+  {
+    firstName: 'Admin',
+    lastName: 'One',
+    email: 'admin@gmail.com',
+    password: 'adminpwd',
+    role: UserRoles.ADMIN,
   },
 ];
 

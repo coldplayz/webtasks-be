@@ -13,11 +13,22 @@ import { updateUser } from "@/lib/utils";
 import { ApiError } from "@/lib/error-handling";
 // import { Document } from "mongoose";
 
-export async function getUsers(queryObj: UserQueryDTO) {
-  return User.find(queryObj);
+const log = console.log; // SCAFF
+
+export async function getUsers(
+  queryObj: UserQueryDTO,
+  uid?: Types.ObjectId | "",
+) {
+  // log(queryObj, uid); // SCAFF
+
+  return User.find({
+    ...queryObj,
+    _id: uid ? uid : { $exists: true },
+  });
 }
 
 export async function getUserById(id: Types.ObjectId) {
+  // log('in getUser:', id); // SCAFF
   return User.findById(id);
 }
 

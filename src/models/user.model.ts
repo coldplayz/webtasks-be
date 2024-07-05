@@ -11,9 +11,7 @@
 import { Schema, model, Types } from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
-// In production, generate with `openssl rand -hex 32`
-const testSecret = 'test+secret';
+import { UserRoles, TEST_SECRET } from "@/lib/config";
 
 const UserSchema = new Schema({
   firstName: {
@@ -35,8 +33,8 @@ const UserSchema = new Schema({
   },
   role: {
     type: String,
-    enum: ['ADMIN', 'USER'],
-    default:'USER',
+    enum: [...Object.values(UserRoles)],
+    default: UserRoles.USER,
   },
   /*
   tasks: [
@@ -84,7 +82,7 @@ UserSchema.methods.generateAccessToken = function () {
       email: this.email,
       role: this.role,
     },
-    process.env.ACCESS_TOKEN_SECRET || testSecret,
+    process.env.ACCESS_TOKEN_SECRET || TEST_SECRET,
     {
       expiresIn: "1d",
     }
@@ -97,7 +95,7 @@ UserSchema.methods.generateRefreshToken = function () {
     {
       id: this._id,
     },
-    process.env.REFRESH_TOKEN_SECRET || testSecret,
+    process.env.REFRESH_TOKEN_SECRET || TEST_SECRET,
     {
       expiresIn: "2d",
     }

@@ -8,7 +8,9 @@ const connectDB = async (db: string) => {
 
   try {
     // const uri = `${DATABASE_URI}${db}/?retryWrites=true&w=majority&appName=Cluster0`;
-    const uri = `${DATABASE_URI}${db}`;
+    const uri = `${
+      DATABASE_URI.endsWith('/') ? DATABASE_URI : DATABASE_URI + '/'
+    }${db}`;
     // console.log(uri); // SCAFF
     // process.exit();
     await mongoose.connect(uri);

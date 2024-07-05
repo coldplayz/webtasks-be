@@ -3,7 +3,13 @@
  */
 
 import * as dotenv from "dotenv";
-import express from "express";
+
+const result = dotenv.config({ path: ['./.env', './.env.local'] });
+if (result.error) {
+  throw result.error
+}
+
+import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -17,8 +23,7 @@ import userRouter from "./routes/user.route";
 import authRouter from "./routes/auth.route";
 import taskRouter from "./routes/task.route";
 import { DATABASE_NAME } from "@/lib/config";
-
-dotenv.config();
+import { ApiError } from "@/lib/error-handling";
 
 /**
  * Server and socket setup
@@ -41,6 +46,12 @@ const io = new Server(server, {
  *  Configuration and middlewares
  */
 
+// Sanity check
+app.get("/", (_, res) => {
+  res.json({ success: true, data: 'LIVE' })
+  eventEmitter.emit('apiEvent', 'sanity check successfull!');
+});
+
 app.use(logger('dev'));
 app.use(helmet());
 app.use(cors());
@@ -52,10 +63,47 @@ app.use('/api/v1/users', userRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/tasks', taskRouter);
 
-// Sanity check
-app.get("/", (_, res) => {
-  res.json({ success: true, data: 'LIVE' })
-  eventEmitter.emit('apiEvent', 'sanity check successfull!');
+// Catch-all error handler
+app.use((
+  err: Error | ApiError,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  if (res.headersSent) {
+    return next(err)
+  }
+
+  let statusCode = 500;
+
+  if (err instanceof ApiError) statusCode = err.statusCode;
+
+  switch (err.constructor.name) {
+    case 'CastError':
+      // invalid ObjectId string
+      return res.status(400).json({ success: false, error: err });
+    case 'MongoServerError':
+      // duplicate key error
+      return res.status(403).json({ success: false, error: err });
+    case 'ValidationError':
+      return res.status(400).json({ success: false, error: err });
+  }
+
+  return res.status(statusCode).json({
+    success: false,
+    error: {
+      name: err.constructor.name, // then put in switch stmt
+      err,
+    }
+  });
+});
+
+// Handle 404, which is not considered an error
+app.use((req: Request, res: Response, next: NextFunction) => {
+  res.status(404).json({
+    success: false,
+    error: `Cannot ${req.method} ${req.url}. Resource not found.`,
+  });
 });
 
 // Socket

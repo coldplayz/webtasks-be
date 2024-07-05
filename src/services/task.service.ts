@@ -13,8 +13,14 @@ import { ApiError } from "@/lib/error-handling";
 import { updateTask } from "@/lib/utils";
 // import { Document } from "mongoose";
 
-export async function getTasks(queryObj: TaskQueryDTO) {
-  return Task.find(queryObj);
+export async function getTasks(
+  queryObj: TaskQueryDTO,
+  uid?: Types.ObjectId | "",
+) {
+  return Task.find({
+    ...queryObj,
+    userId: uid ? uid : { $exists: true },
+  });
 }
 
 export async function getTaskById(id: Types.ObjectId) {

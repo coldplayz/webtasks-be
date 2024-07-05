@@ -11,14 +11,14 @@ import {Request, Response, NextFunction} from "express";
 import * as taskServices from "@/src/services/task.service";
 import eventEmitter from "../events/api-events";
 import {
-    AuthenticatedRequest,
+  AuthenticatedRequest,
   TaskCreateDTO,
   TaskDoc,
   TaskQueryDTO,
   TaskUpdateDTO,
 } from "@/types";
 import {
-    getTaskDataFrom,
+  getTaskDataFrom,
   getTaskQueryFrom,
   getTaskUpdateFrom,
 } from "@/lib/utils";
@@ -39,13 +39,26 @@ export async function getTasks(
   const queryObj: TaskQueryDTO = getTaskQueryFrom(req.query);
 
   try {
-    const tasks = await taskServices.getTasks(queryObj);
+    const tasks = await taskServices.getTasks(
+      queryObj,
+      req.user.reqUserId && new Types.ObjectId(req.user.reqUserId),
+    );
     res.json({
       success: true,
       data: tasks,
     });
     eventEmitter.emit('getTasks', { getTasks: true, tasks });
   } catch (err: any) {
+    if (err.name === 'BSONError') {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'Invalid ObjectId',
+          error: err,
+        },
+      });
+    }
+
     next(err);
   }
 }
@@ -69,7 +82,7 @@ export async function createTask(
 ) {
   const taskData: TaskCreateDTO = getTaskDataFrom(
     req.body,
-    req.user.reqUserId as string
+    req.body.userId as string
   );
 
   try {

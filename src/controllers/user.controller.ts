@@ -35,13 +35,26 @@ export async function getUsers(
   const queryObj: UserQueryDTO = getUserQueryFrom(req.query);
 
   try {
-    const users = await userServices.getUsers(queryObj);
+    const users = await userServices.getUsers(
+      queryObj,
+      req.user.reqUserId && new Types.ObjectId(req.user.reqUserId),
+    );
     res.json({
       success: true,
       data: users,
     });
     eventEmitter.emit('getUsers', { getUsers: true, users });
   } catch (err: any) {
+    if (err.name === 'BSONError') {
+      res.status(400).json({
+        success: false,
+        error: {
+          message: 'Invalid ObjectId',
+          error: err,
+        },
+      });
+    }
+
     next(err);
   }
 }

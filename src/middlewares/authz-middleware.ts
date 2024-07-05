@@ -112,16 +112,23 @@ export async function verifyCreateTaskAuthz(
   if (req.user.id !== req.body.userId) {
     // Not own resource; check if permitted for any
     if (TaskResourceRBAC.permissions.createAnyTask.includes(role)) {
+      // Likely admin; if userId specified in body, use it
+      req.body.userId = req.body.userId || req.user.id;
       req.user.permissions.canCreateAny = true;
       return next();
     }
 
-    return unauthorize(res, 'Cannot create just any task.');
+    if (req.body.userId != null) {
+      // User without admin rights attempted illegal action
+      return unauthorize(res, 'Cannot create just any task.');
+    }
   }
 
   // Own resource
 
   if (TaskResourceRBAC.permissions.createOwnTask.includes(role)) {
+    // Can only create own
+    req.body.userId || void (req.body.userId = req.user.id);
     req.user.permissions.canCreateOwn = true;
     return next();
   }
